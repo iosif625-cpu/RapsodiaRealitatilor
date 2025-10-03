@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rapsodia – Document</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; border-bottom: 1px solid #eee; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+    }
+    header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+    header .actions { display: flex; gap: 8px; }
+    button, a.button {
+      font: inherit; padding: 8px 12px; border-radius: 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; text-decoration: none; color: inherit;
+    }
+    a.primary { background: #0b57d0; color: #fff; border-color: #0b57d0; }
+    .wrap { height: calc(100% - 52px); }
+    iframe { width: 100%; height: 100%; border: 0; }
+    .fallback {
+      display: none; height: 100%; align-items: center; justify-content: center; text-align: center; padding: 24px; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+    }
+    .fallback.show { display: flex; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Rapsodia Realităților – Octombrie 2025</h1>
+    <div class="actions">
+      <a class="button" href="index.html">Înapoi</a>
+      <a class="button primary" id="openBrowser" href="rapsodia-realitatilor-2025-octombrie.pdf" target="_blank" rel="noopener">Deschide în browser</a>
+      <a class="button" href="rapsodia-realitatilor-2025-octombrie.pdf" download>Descarcă PDF</a>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <!-- Încercăm să afișăm în iframe -->
+    <iframe id="pdfFrame" src="rapsodia-realitatilor-2025-octombrie.pdf#view=FitH&zoom=page-width" title="Rapsodia PDF"></iframe>
+
+    <!-- Fallback dacă nu se poate randă PDF în iframe -->
+    <div id="fallback" class="fallback">
+      <div>
+        <p>Dispozitivul tău nu poate afișa PDF-ul direct în aplicație.</p>
+        <p>Apasă „Deschide în browser” pentru a-l vedea cu viewerul nativ.</p>
+        <p><a class="button primary" href="rapsodia-realitatilor-2025-octombrie.pdf" target="_blank" rel="noopener">Deschide în browser</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Heuristică simplă: dacă în PWA pe anumite device-uri iframe-ul nu se poate încărca,
+    // uneori browserul încearcă download. Nu avem eveniment standard, dar putem face un test de capabilitate.
+    (function() {
+      const pdfUrl = "rapsodia-realitatilor-2025-octombrie.pdf";
+      const iframe = document.getElementById('pdfFrame');
+      const fallback = document.getElementById('fallback');
+
+      // Detectare "standalone"
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+      // Test capabilitate element <embed>/<object> PDF (nu e standard 100%, dar ajută)
+      const test = document.createElement('embed');
+      const supportsEmbed = 'type' in test;
+      const likelySupportsPdf = supportsEmbed; // dacă poate seta type pe embed, de obicei redă PDF
+
+      // Dacă suntem în PWA și e posibil să nu suporte PDF inline, arătăm fallback vizibil
+      if (isStandalone && !likelySupportsPdf) {
+        iframe.style.display = 'none';
+        fallback.classList.add('show');
+      }
+
+      // Butonul "Deschide în browser" deja are target="_blank" → iese din PWA către browser cu viewerul nativ.
+      document.getElementById('openBrowser').setAttribute('href', pdfUrl);
+    })();
+  </script>
+</body>
+</html>

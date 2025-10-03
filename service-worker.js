@@ -1,6 +1,7 @@
-const CACHE = "pdf-cache-v2";
+const CACHE = "pdf-cache-v3";
 const ASSETS = [
   "index.html",
+  "viewer.html",
   "manifest.json",
   "rapsodia-realitatilor-2025-octombrie.pdf",
   "icon-192.png",
@@ -8,9 +9,7 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(ASSETS))
-  );
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
 });
 
 self.addEventListener("activate", (event) => {
@@ -25,13 +24,14 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   if (url.origin === self.location.origin) {
+    // PDF: cache-first
     if (url.pathname.endsWith(".pdf")) {
       event.respondWith(
         caches.match(event.request).then((res) => res || fetch(event.request))
       );
       return;
     }
-
+    // Restul: cache-first simplu
     event.respondWith(
       caches.match(event.request).then((res) => res || fetch(event.request))
     );
