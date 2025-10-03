@@ -3,28 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Descarcă PDF</title>
-
-  <!-- Manifest PWA -->
+  <title>Rapsodia Realităților</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#000000">
 </head>
 <body>
-  <h1>Descarcă Rapsodia Realitaților PDF</h1>
-  <p>Introdu numărul de telefon pentru a continua:</p>
-
-  <!-- Formular -->
-  <form action="https://formspree.io/f/mqaybjjz" method="POST">
-    <input type="tel" name="telefon" placeholder="07xxxxxxxx" required>
+  <h1>Descarcă Rapsodia Realităților</h1>
+  <form action="https://formspree.io/f/tu-cod-formspree" method="POST">
+    <label for="number">Numărul tău de telefon:</label>
+    <input type="text" id="number" name="number" required>
+    
+    <!-- Câmp ascuns pentru redirect -->
     <input type="hidden" name="_redirect" value="rapsodia-realitatilor-2025-octombrie.pdf">
+    
     <button type="submit">Trimite și descarcă</button>
   </form>
 
   <script>
-    // Înregistrare service worker
+    // Înregistrăm service worker-ul
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js');
     }
+
+    // 1) Reținem evenimentul beforeinstallprompt (nu lăsăm să apară instant)
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+
+    // 2) Afișăm prompt-ul DOAR după ce utilizatorul trimite formularul
+    const form = document.querySelector('form');
+    form.addEventListener('submit', async () => {
+      if (deferredPrompt) {
+        await deferredPrompt.prompt();
+        deferredPrompt = null;
+      }
+      // nu facem preventDefault → lăsăm Formspree să redirecționeze la PDF
+    });
   </script>
 </body>
 </html>

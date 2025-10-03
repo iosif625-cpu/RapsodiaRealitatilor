@@ -1,7 +1,8 @@
 {
-  "name": "PDF Viewer",
-  "short_name": "PDF",
-  "start_url": "index.html",
+  "name": "Rapsodia Realităților",
+  "short_name": "Rapsodia",
+  "start_url": "rapsodia-realitatilor-2025-octombrie.pdf",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
