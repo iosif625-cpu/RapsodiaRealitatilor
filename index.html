@@ -28,7 +28,6 @@
 <body>
   <h1>Descarcă Rapsodia Realităților</h1>
 
-  <!-- NU are id; JS va folosi document.querySelector('form') -->
   <form action="https://formspree.io/f/mqaybjjz" method="POST">
     <label for="number">Numărul tău de telefon:</label>
     <input type="text" id="number" name="number" required autocomplete="tel"/>
@@ -65,7 +64,7 @@
       deferredPrompt = e;   // stocăm evenimentul
     });
 
-    // --- Selectoare fără id ---
+    // --- Selectoare ---
     const form = document.querySelector('form');
     const overlay = document.getElementById('installOverlay');
     const hintBox = document.getElementById('hint');
@@ -97,7 +96,7 @@
 
     // La submit → arătăm overlay (nu trimitem încă)
     form.addEventListener('submit', (e) => {
-      e.preventDefault();  // blocăm trimiterea până la alegerea din dialog
+      e.preventDefault();  // blocăm trimiterea până la alegere
       showOverlay();
     });
 
@@ -109,12 +108,12 @@
           await deferredPrompt.userChoice;
         } catch (_) {}
         deferredPrompt = null;
+        hideOverlay();
+        setTimeout(() => form.submit(), 0);
       } else {
-        showManualHint(); // fallback când promptul nu e disponibil
+        // fallback: arătăm instrucțiuni și overlay-ul rămâne până la "Mai târziu"
+        showManualHint();
       }
-      hideOverlay();
-      // mic delay pentru a asigura update-ul UI, apoi trimitem nativ către Formspree
-      setTimeout(() => form.submit(), 0);
     });
 
     // Buton: Mai târziu
