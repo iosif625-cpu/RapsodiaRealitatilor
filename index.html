@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Descarcă PDF</title>
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+</head>
+<body>
+  <h1>Descarcă Rapsodia Realitaților PDF</h1>
+  <p>Introdu numărul de telefon pentru a continua:</p>
+
+  <!-- Formular -->
+  <form action="https://formspree.io/f/mqaybjjz" method="POST">
+    <input type="tel" name="telefon" placeholder="07xxxxxxxx" required>
+    <input type="hidden" name="_redirect" value="rapsodia-realitatilor-2025-octombrie.pdf">
+    <button type="submit">Trimite și descarcă</button>
+  </form>
+
+  <script>
+    // Înregistrare service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+</html>
