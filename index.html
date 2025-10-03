@@ -13,32 +13,22 @@
     button { cursor: pointer; }
 
     /* Modal */
-    .overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.5);
-      display: none; align-items: center; justify-content: center;
-      z-index: 9999;
-    }
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 9999; }
     .overlay.open { display: flex; }
-    .modal {
-      background: #fff; border-radius: 14px; padding: 20px; width: min(92vw, 480px);
-      box-shadow: 0 10px 30px rgba(0,0,0,.25);
-    }
+    .modal { background: #fff; border-radius: 14px; padding: 20px; width: min(92vw, 480px); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
     .modal h2 { margin: 0 0 8px; font-size: 20px; }
     .modal p  { margin: 0 0 12px; line-height: 1.4; }
     .actions { display: grid; gap: 8px; margin-top: 12px; }
     .primary { background: #0b57d0; color: #fff; border: 0; border-radius: 10px; padding: 12px; }
     .secondary { background: #eee; color: #222; border: 0; border-radius: 10px; padding: 12px; }
-    .hint {
-      background:#f6f8ff; border:1px solid #dfe7ff; border-radius:10px; padding:10px; font-size:14px;
-      display:none; margin-top: 8px;
-    }
+    .hint { background:#f6f8ff; border:1px solid #dfe7ff; border-radius:10px; padding:10px; font-size:14px; display:none; margin-top: 8px; }
     .hint.show { display:block; }
   </style>
 </head>
 <body>
   <h1>Descarcă Rapsodia Realităților</h1>
 
+  <!-- NU are id; JS va folosi document.querySelector('form') -->
   <form action="https://formspree.io/f/mqaybjjz" method="POST">
     <label for="number">Numărul tău de telefon:</label>
     <input type="text" id="number" name="number" required autocomplete="tel"/>
@@ -46,7 +36,7 @@
     <!-- Redirect către PDF după submit -->
     <input type="hidden" name="_redirect" value="rapsodia-realitatilor-2025-octombrie.pdf"/>
 
-    <button type="submit" id="submitBtn">Trimite și descarcă</button>
+    <button type="submit">Trimite și descarcă</button>
   </form>
 
   <!-- Notificare / modal de instalare -->
@@ -54,12 +44,10 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="installTitle">
       <h2 id="installTitle">Instalează aplicația pentru acces rapid</h2>
       <p>Poți adăuga aplicația pe ecranul principal. Alege „Instalează acum” sau „Mai târziu”. După alegere vei continua la document.</p>
-
       <div id="hint" class="hint"></div>
-
       <div class="actions">
-        <button class="primary" id="installNow">Instalează acum</button>
-        <button class="secondary" id="skipInstall">Mai târziu</button>
+        <button class="primary" id="installNow" type="button">Instalează acum</button>
+        <button class="secondary" id="skipInstall" type="button">Mai târziu</button>
       </div>
     </div>
   </div>
@@ -73,14 +61,14 @@
     // --- Control pentru beforeinstallprompt ---
     let deferredPrompt = null;
     window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();           // oprim infobar-ul automat
-      deferredPrompt = e;           // păstrăm evenimentul pentru a-l folosi la "Instalează acum"
+      e.preventDefault();   // oprim infobar-ul automat
+      deferredPrompt = e;   // stocăm evenimentul
     });
 
-    // --- Utilitare ---
+    // --- Selectoare fără id ---
+    const form = document.querySelector('form');
     const overlay = document.getElementById('installOverlay');
     const hintBox = document.getElementById('hint');
-    const form = document.getElementById('leadForm');
     const installBtn = document.getElementById('installNow');
     const skipBtn = document.getElementById('skipInstall');
 
@@ -92,49 +80,47 @@
       overlay.classList.remove('open');
       overlay.setAttribute('aria-hidden', 'true');
     }
-
     function showManualHint() {
       const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
       const isAndroid = /android/i.test(navigator.userAgent);
       let text = '';
-
       if (isIOS) {
-        text = 'Pe iPhone/iPad: apasă butonul „Share” (pătratul cu săgeată), apoi „Add to Home Screen / Adăugați pe ecranul principal”.';
+        text = 'Pe iPhone/iPad: apasă „Share” (pătratul cu săgeată), apoi „Add to Home Screen / Adăugați pe ecranul principal”.';
       } else if (isAndroid) {
         text = 'Pe Android: din meniul browserului (⋮) alege „Install app / Instalează aplicația”.';
       } else {
-        text = 'Pe desktop: în bara de adrese (dreapta) apasă iconița „Install” sau folosește meniul browserului pentru „Install app”.';
+        text = 'Pe desktop: în bara de adrese apasă iconița „Install” sau folosește meniul browserului pentru „Install app”.';
       }
       hintBox.textContent = text;
       hintBox.classList.add('show');
     }
 
-    // --- Flux: la submit arătăm notificarea; după alegere trimitem formularul ---
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();  // controlăm momentul trimiterii
-      showOverlay();       // notificarea rămâne până la apăsarea unui buton
+    // La submit → arătăm overlay (nu trimitem încă)
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();  // blocăm trimiterea până la alegerea din dialog
+      showOverlay();
     });
 
+    // Buton: Instalează acum
     installBtn.addEventListener('click', async () => {
-      // dacă promptul nativ e disponibil, îl afișăm
       if (deferredPrompt) {
         try {
           await deferredPrompt.prompt();
-          await deferredPrompt.userChoice; // așteptăm răspunsul utilizatorului
-        } catch (_) { /* ignorăm eventualele erori de prompt */ }
-        deferredPrompt = null; // nu mai e reutilizabil
+          await deferredPrompt.userChoice;
+        } catch (_) {}
+        deferredPrompt = null;
       } else {
-        // fallback: arătăm instrucțiuni
-        showManualHint();
+        showManualHint(); // fallback când promptul nu e disponibil
       }
-      // după acțiune → trimitem formularul și lăsăm Formspree să redirecționeze
       hideOverlay();
-      form.submit();
+      // mic delay pentru a asigura update-ul UI, apoi trimitem nativ către Formspree
+      setTimeout(() => form.submit(), 0);
     });
 
+    // Buton: Mai târziu
     skipBtn.addEventListener('click', () => {
       hideOverlay();
-      form.submit();  // continuăm fără instalare
+      setTimeout(() => form.submit(), 0);
     });
   </script>
 </body>
