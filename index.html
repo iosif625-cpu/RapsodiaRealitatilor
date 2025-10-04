@@ -11,8 +11,6 @@
     form { display: grid; gap: 12px; max-width: 420px; }
     input, button { font-size: 16px; padding: 10px 12px; }
     button { cursor: pointer; }
-
-    /* Modal */
     .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 9999; }
     .overlay.open { display: flex; }
     .modal { background: #fff; border-radius: 14px; padding: 20px; width: min(92vw, 480px); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
@@ -28,7 +26,7 @@
 <body>
   <h1>Descarcă Rapsodia Realităților</h1>
 
-  <form action="https://formspree.io/f/mqaybjjz" method="POST">
+  <form action="https://formspree.io/f/tu-cod-formspree" method="POST">
     <label for="number">Numărul tău de telefon:</label>
     <input type="text" id="number" name="number" required autocomplete="tel"/>
 
@@ -52,19 +50,16 @@
   </div>
 
   <script>
-    // --- Service worker ---
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js');
     }
 
-    // --- Control pentru beforeinstallprompt ---
     let deferredPrompt = null;
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
     });
 
-    // --- Selectoare ---
     const form = document.querySelector('form');
     const overlay = document.getElementById('installOverlay');
     const hintBox = document.getElementById('hint');
@@ -94,13 +89,11 @@
       hintBox.classList.add('show');
     }
 
-    // La submit → arătăm overlay (nu trimitem încă)
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       showOverlay();
     });
 
-    // Buton: Instalează acum
     installBtn.addEventListener('click', async () => {
       if (deferredPrompt) {
         try {
@@ -111,12 +104,10 @@
         hideOverlay();
         setTimeout(() => form.submit(), 0);
       } else {
-        // fallback: arătăm instrucțiuni și overlay-ul rămâne până la "Mai târziu"
-        showManualHint();
+        showManualHint(); // overlay rămâne până la "Mai târziu"
       }
     });
 
-    // Buton: Mai târziu
     skipBtn.addEventListener('click', () => {
       hideOverlay();
       setTimeout(() => form.submit(), 0);

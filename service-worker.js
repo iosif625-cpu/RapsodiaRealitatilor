@@ -1,4 +1,4 @@
-const CACHE = "pdf-cache-v3";
+const CACHE = "pdf-cache-v4";
 const ASSETS = [
   "index.html",
   "viewer.html",
@@ -24,7 +24,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   if (url.origin === self.location.origin) {
-    // PDF: cache-first
+    // PDF: cache-first (merge și offline)
     if (url.pathname.endsWith(".pdf")) {
       event.respondWith(
         caches.match(event.request).then((res) => res || fetch(event.request))
