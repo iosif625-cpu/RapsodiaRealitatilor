@@ -11,7 +11,6 @@
     form { display: grid; gap: 12px; max-width: 420px; }
     input, button { font-size: 16px; padding: 10px 12px; }
     button { cursor: pointer; }
-
     /* Overlay (notificare) */
     .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 9999; }
     .overlay.open { display: flex; }
@@ -22,7 +21,7 @@
     .primary { background: #0b57d0; color: #fff; border: 0; border-radius: 10px; padding: 12px; }
     .secondary { background: #eee; color: #222; border: 0; border-radius: 10px; padding: 12px; }
     .hint { background:#f6f8ff; border:1px solid #dfe7ff; border-radius:10px; padding:10px; font-size:14px; display:none; margin-top: 8px; }
-    .hint.show { display:block; }
+    .hint.show { display:block; white-space:pre-line; }
   </style>
 </head>
 <body>
@@ -42,7 +41,10 @@
   <div class="overlay" id="installOverlay" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="installTitle">
       <h2 id="installTitle">Instalează aplicația pentru acces rapid</h2>
-      <p>Pe iOS apasă <strong>Share</strong> și alege <strong>Add to Home Screen</strong>. După închiderea ferestrei Share continui automat la document.</p>
+      <p id="installDesc">
+        Pe iOS, apasă <strong>butonul Share din bara de jos a Safari</strong>, apoi <strong>Add to Home Screen</strong>.
+        După închiderea meniului Share, continui automat la document.
+      </p>
       <div id="hint" class="hint"></div>
       <div class="actions">
         <button class="primary" id="installNow" type="button">Instalează acum</button>
@@ -70,9 +72,17 @@
     const hintBox = document.getElementById('hint');
     const installBtn = document.getElementById('installNow');
     const skipBtn = document.getElementById('skipInstall');
+    const installDesc = document.getElementById('installDesc');
 
-    // Detectare platformă
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    // Detectare platformă / browser pe iOS
+    const ua = navigator.userAgent;
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const isCriOS = /CriOS/i.test(ua);      // Chrome iOS
+    const isFxiOS = /FxiOS/i.test(ua);      // Firefox iOS
+    const isEdgiOS = /EdgiOS/i.test(ua);    // Edge iOS
+    const isDuckiOS = /DuckDuckGo/i.test(ua);
+    const isGSA = /GSA/i.test(ua);          // Google app webview
+    const isSafari = isIOS && !(isCriOS || isFxiOS || isEdgiOS || isDuckiOS || isGSA);
 
     function showOverlay() {
       overlay.classList.add('open');
@@ -84,8 +94,21 @@
     }
     function showManualHint() {
       let text = '';
-      if (isIOS) {
-        text = 'Pe iPhone/iPad: apasă butonul „Share” (pătratul cu săgeata în sus), apoi „Add to Home Screen / Adăugați pe ecranul principal”. După închiderea ferestrei de Share continui automat.';
+      if (isIOS && isSafari) {
+        text =
+`1) Apasă butonul  Share  (pătratul cu săgeata în sus) din bara de jos.
+2) Alege  Add to Home Screen  (Adăugați pe ecranul principal).
+3) Închide meniul Share — te redirecționez automat.`;
+      } else if (isIOS) {
+        text =
+`Ești în ${isCriOS ? 'Chrome' : isFxiOS ? 'Firefox' : isEdgiOS ? 'Edge' : 'acest browser'} pe iOS.
+Pentru instalare, deschide pagina în Safari și apoi:
+ - Share → Add to Home Screen.
+Ți-am copiat linkul în clipboard.`;
+        // Copiem linkul pentru a-l lipi ușor în Safari
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(location.href).catch(()=>{});
+        }
       } else {
         text = 'Pe Android: din meniul browserului (⋮) alege „Install app / Instalează aplicația”.';
       }
@@ -97,11 +120,43 @@
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       showOverlay();
+
+      // Text dinamic în descriere, pentru claritate
+      if (isIOS && !isSafari) {
+        installDesc.innerHTML = 'Pe iOS, instalarea se face numai din <strong>Safari</strong>. Deschide pagina în Safari → Share → <strong>Add to Home Screen</strong>. Închid dialogul și continui automat.';
+      } else if (!isIOS) {
+        installDesc.innerHTML = 'Pe Android, la pasul următor ți se va afișa promptul de instalare. După alegere, continui automat la document.';
+      }
     });
+
+    // Auto-continue după ce utilizatorul iese/închide meniul Share în iOS Safari
+    function setupIOSAutoContinue() {
+      let continued = false;
+      const continueFlow = () => {
+        if (continued) return;
+        continued = true;
+        hideOverlay();
+        setTimeout(() => form.submit(), 0);
+        // curățăm listener-ele
+        document.removeEventListener('visibilitychange', onVis);
+        window.removeEventListener('pagehide', onHide);
+        window.removeEventListener('blur', onBlur);
+      };
+      const onVis = () => { if (!document.hidden) continueFlow(); };
+      const onHide = () => continueFlow();
+      const onBlur = () => setTimeout(continueFlow, 0);
+
+      document.addEventListener('visibilitychange', onVis);
+      window.addEventListener('pagehide', onHide, { once: true });
+      window.addEventListener('blur', onBlur, { once: true });
+
+      // Fallback în caz că evenimentele nu sosesc (de ex. doar deschide meniu și îl închide rapid)
+      setTimeout(continueFlow, 12000);
+    }
 
     // Instalează acum
     installBtn.addEventListener('click', async () => {
-      // 1) Cazul cu prompt nativ (Android/desktop)
+      // 1) ANDROID/DESKTOP: prompt nativ
       if (deferredPrompt && !isIOS) {
         try {
           await deferredPrompt.prompt();
@@ -113,32 +168,22 @@
         return;
       }
 
-      // 2) iOS: deschidem Share Sheet prin Web Share API și apoi trimitem automat
-      if (isIOS) {
-        try {
-          // arată și instrucțiunea (opțional)
-          showManualHint();
-
-          if (navigator.share) {
-            // deschide fereastra Share (user gesture)
-            await navigator.share({
-              title: document.title,
-              text: 'Alege „Add to Home Screen” pentru a instala aplicația.',
-              url: location.href
-            });
-          } else {
-            // iOS foarte vechi: așteptăm puțin după instrucțiuni, apoi continuăm
-            await new Promise(res => setTimeout(res, 7000));
-          }
-        } catch (_) {
-          // utilizatorul a anulat Share; continuăm oricum
-        }
-        hideOverlay();
-        setTimeout(() => form.submit(), 0);
+      // 2) iOS SAFARI: arătăm pașii corecți (Share din bara de jos), apoi așteptăm auto-continue
+      if (isIOS && isSafari) {
+        showManualHint();     // pașii corecți pentru A2HS
+        setupIOSAutoContinue(); // când închide Share, continuăm automat
+        // Notă: nu folosim navigator.share(), pentru că nu conține „Add to Home Screen”
         return;
       }
 
-      // 3) Alte cazuri (desktop fără beforeinstallprompt) – doar instrucțiuni; user apasă „Mai târziu”
+      // 3) iOS alte browsere: explicăm să deschidă în Safari și continuăm oricum după puțin timp
+      if (isIOS && !isSafari) {
+        showManualHint();
+        setTimeout(() => { hideOverlay(); form.submit(); }, 7000);
+        return;
+      }
+
+      // 4) fallback generic: doar instrucțiuni
       showManualHint();
     });
 
