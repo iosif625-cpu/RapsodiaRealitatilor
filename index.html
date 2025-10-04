@@ -11,6 +11,7 @@
     form { display: grid; gap: 12px; max-width: 420px; }
     input, button { font-size: 16px; padding: 10px 12px; }
     button { cursor: pointer; }
+
     /* Overlay (notificare) */
     .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 9999; }
     .overlay.open { display: flex; }
@@ -27,7 +28,7 @@
 <body>
   <h1>Descarcă Rapsodia Realităților</h1>
 
-  <form action="https://formspree.io/f/mqaybjjz" method="POST">
+  <form action="https://formspree.io/f/tu-cod-formspree" method="POST">
     <label for="number">Numărul tău de telefon:</label>
     <input type="text" id="number" name="number" required autocomplete="tel"/>
 
@@ -41,7 +42,7 @@
   <div class="overlay" id="installOverlay" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="installTitle">
       <h2 id="installTitle">Instalează aplicația pentru acces rapid</h2>
-      <p>Poți adăuga aplicația pe ecranul principal. Alege „Instalează acum” sau „Mai târziu”. După alegere vei continua la document.</p>
+      <p>Pe iOS apasă <strong>Share</strong> și alege <strong>Add to Home Screen</strong>. După închiderea ferestrei Share continui automat la document.</p>
       <div id="hint" class="hint"></div>
       <div class="actions">
         <button class="primary" id="installNow" type="button">Instalează acum</button>
@@ -56,7 +57,7 @@
       navigator.serviceWorker.register('service-worker.js');
     }
 
-    // Control beforeinstallprompt
+    // Control beforeinstallprompt (Android/desktop)
     let deferredPrompt = null;
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
@@ -70,6 +71,9 @@
     const installBtn = document.getElementById('installNow');
     const skipBtn = document.getElementById('skipInstall');
 
+    // Detectare platformă
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
     function showOverlay() {
       overlay.classList.add('open');
       overlay.setAttribute('aria-hidden', 'false');
@@ -79,29 +83,26 @@
       overlay.setAttribute('aria-hidden', 'true');
     }
     function showManualHint() {
-      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      const isAndroid = /android/i.test(navigator.userAgent);
       let text = '';
       if (isIOS) {
-        text = 'Pe iPhone/iPad: apasă „Share” (pătratul cu săgeată), apoi „Add to Home Screen / Adăugați pe ecranul principal”.';
-      } else if (isAndroid) {
-        text = 'Pe Android: din meniul browserului (⋮) alege „Install app / Instalează aplicația”.';
+        text = 'Pe iPhone/iPad: apasă butonul „Share” (pătratul cu săgeata în sus), apoi „Add to Home Screen / Adăugați pe ecranul principal”. După închiderea ferestrei de Share continui automat.';
       } else {
-        text = 'Pe desktop: în bara de adrese apasă iconița „Install” sau folosește meniul browserului pentru „Install app”.';
+        text = 'Pe Android: din meniul browserului (⋮) alege „Install app / Instalează aplicația”.';
       }
       hintBox.textContent = text;
       hintBox.classList.add('show');
     }
 
-    // La submit → arătăm overlay
+    // La submit → arătăm overlay (nu trimitem încă)
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       showOverlay();
     });
 
-    // Buton: Instalează acum
+    // Instalează acum
     installBtn.addEventListener('click', async () => {
-      if (deferredPrompt) {
+      // 1) Cazul cu prompt nativ (Android/desktop)
+      if (deferredPrompt && !isIOS) {
         try {
           await deferredPrompt.prompt();
           await deferredPrompt.userChoice;
@@ -109,13 +110,39 @@
         deferredPrompt = null;
         hideOverlay();
         setTimeout(() => form.submit(), 0);
-      } else {
-        // Fallback când promptul nativ nu e disponibil
-        showManualHint(); // overlay rămâne până la "Mai târziu"
+        return;
       }
+
+      // 2) iOS: deschidem Share Sheet prin Web Share API și apoi trimitem automat
+      if (isIOS) {
+        try {
+          // arată și instrucțiunea (opțional)
+          showManualHint();
+
+          if (navigator.share) {
+            // deschide fereastra Share (user gesture)
+            await navigator.share({
+              title: document.title,
+              text: 'Alege „Add to Home Screen” pentru a instala aplicația.',
+              url: location.href
+            });
+          } else {
+            // iOS foarte vechi: așteptăm puțin după instrucțiuni, apoi continuăm
+            await new Promise(res => setTimeout(res, 7000));
+          }
+        } catch (_) {
+          // utilizatorul a anulat Share; continuăm oricum
+        }
+        hideOverlay();
+        setTimeout(() => form.submit(), 0);
+        return;
+      }
+
+      // 3) Alte cazuri (desktop fără beforeinstallprompt) – doar instrucțiuni; user apasă „Mai târziu”
+      showManualHint();
     });
 
-    // Buton: Mai târziu
+    // Mai târziu
     skipBtn.addEventListener('click', () => {
       hideOverlay();
       setTimeout(() => form.submit(), 0);
