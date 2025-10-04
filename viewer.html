@@ -23,7 +23,6 @@
     #toolbar button {
       padding: 6px 10px; border-radius: 8px; border: 1px solid #ddd; background: #fff; cursor: pointer;
     }
-    #toolbar span { min-width: 60px; text-align: center; }
     #viewer {
       height: calc(100% - 50px - 46px); /* header + toolbar */
       overflow: auto; background: #eee; padding: 10px;
@@ -44,11 +43,10 @@
     </div>
   </header>
 
-  <!-- Mini-toolbar pentru zoom/pagină -->
+  <!-- Toolbar simplificat: doar butoanele, fără procentaj -->
   <div id="toolbar">
-    <button id="zoomOut">-</button>
-    <span id="zoomLabel">100%</span>
-    <button id="zoomIn">+</button>
+    <button id="zoomOut" aria-label="Micșorează">-</button>
+    <button id="zoomIn" aria-label="Mărește">+</button>
   </div>
 
   <div id="viewer"></div>
@@ -60,14 +58,14 @@
     const container = document.getElementById("viewer");
     const zoomInBtn = document.getElementById("zoomIn");
     const zoomOutBtn = document.getElementById("zoomOut");
-    const zoomLabel = document.getElementById("zoomLabel");
 
     // Config PDF.js
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
     let pdfDoc = null;
-    let scale = 1.25; // zoom inițial (125%)
+    let scale = 2.25; // preset 225%
+
     let pages = [];
 
     async function renderPage(pageNum) {
@@ -93,25 +91,18 @@
       }
     }
 
-    function updateZoomLabel() {
-      zoomLabel.textContent = Math.round(scale * 100) + "%";
-    }
-
     zoomInBtn.addEventListener("click", async () => {
-      scale = Math.min(scale + 0.25, 3);
-      updateZoomLabel();
+      scale = Math.min(scale + 0.25, 4);
       await renderAllPages();
     });
 
     zoomOutBtn.addEventListener("click", async () => {
       scale = Math.max(scale - 0.25, 0.5);
-      updateZoomLabel();
       await renderAllPages();
     });
 
     (async function init() {
       pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
-      updateZoomLabel();
       await renderAllPages();
     })();
   </script>
